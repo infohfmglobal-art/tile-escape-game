@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Tile Escape - Pipe Puzzle Game</title>
+    <meta name="description" content="Tile Escape is a challenging sliding puzzle game. Slide tiles to connect pipes and guide the character to the exit. 50 levels of increasing difficulty!" />
+    <meta property="og:title" content="Tile Escape - Pipe Puzzle Game" />
+    <meta property="og:description" content="Connect the pipes. Slide the tiles. Escape the maze. 50 levels!" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-1024.png" />
+    <link rel="apple-touch-icon" sizes="1024x1024" href="./icon-1024.png" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#6c63ff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tile Escape" />
+    <meta property="og:image" content="https://www.frameweavestudios.com/tile-escape/icon-1024.png" />
+    <meta property="og:url" content="https://www.frameweavestudios.com/tile-escape/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+
+    <!-- GamePix SDK -->
+    <script src="https://sdk.gamepix.com/sdk.js"></script>
+    <script>
+      // Hide external ad banner (not allowed on GamePix)
+      document.addEventListener('DOMContentLoaded', function() {
+        var adDiv = document.querySelector('.game-frame-ad');
+        if (adDiv) adDiv.style.display = 'none';
+        var gameOuter = document.querySelector('.game-outer');
+        if (gameOuter) {
+          gameOuter.style.width = '100%';
+          gameOuter.style.height = '100%';
+        }
+        var gameFrame = document.querySelector('.game-frame');
+        if (gameFrame) {
+          gameFrame.style.width = '100%';
+          gameFrame.style.height = '100%';
+        }
+      });
+
+      // GamePix SDK shim — maps GameMonetize-style sdk calls to GamePix SDK
+      window._gpSdkReady = false;
+      window._gpGamePaused = false;
+
+      function _initGamePixShim() {
+        window._gpSdkReady = true;
+        document.dispatchEvent(new CustomEvent('gm_game_start'));
+
+        // Override sdk object used by compiled game JS
+        window.sdk = {
+          showBanner: function() {
+            // GamePix manages banners automatically — no action needed
+          },
+          showAd: function(cb) {
+            // GamePix interstitial
+            if (window.GamePix && typeof window.GamePix.showAd === 'function') {
+              window.GamePix.showAd().then(function() {
+                if (typeof cb === 'function') cb({ success: true });
+              }).catch(function() {
+                if (typeof cb === 'function') cb({ success: false });
+              });
+            } else {
+              if (typeof cb === 'function') cb({ success: false });
+            }
+          },
+          showRewardedAd: function(cb) {
+            // GamePix rewarded ad for "Watch Ad" buttons
+            if (window.GamePix && typeof window.GamePix.showRewardedAd === 'function') {
+              window.GamePix.showRewardedAd().then(function() {
+                if (typeof cb === 'function') cb({ success: true });
+              }).catch(function() {
+                if (typeof cb === 'function') cb({ success: false });
+              });
+            } else {
+              if (typeof cb === 'function') cb({ success: false });
+            }
+          }
+        };
+      }
+
+      // Listen for GamePix SDK ready
+      window.addEventListener('load', function() {
+        if (window.GamePix) {
+          window.GamePix.onEvent = function(event) {
+            if (event.name === 'SDK_READY') _initGamePixShim();
+            if (event.name === 'SDK_GAME_START') {
+              window._gpGamePaused = false;
+              document.dispatchEvent(new CustomEvent('gm_game_start'));
+            }
+            if (event.name === 'SDK_GAME_PAUSE') {
+              window._gpGamePaused = true;
+              document.dispatchEvent(new CustomEvent('gm_game_pause'));
+            }
+          };
+        } else {
+          // Fallback if GamePix SDK doesn't load
+          _initGamePixShim();
+        }
+      });
+    </script>
+
+    <!-- Fix: make game fill iframe at any size (min 800x450) -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #050B1A;
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+      }
+      .game-outer {
+        width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      .game-frame {
+        width: 100% !important;
+        flex: 1 !important;
+        min-height: 450px !important;
+      }
+      /* Remove external ad banner — not permitted on GamePix */
+      .game-frame-ad {
+        display: none !important;
+      }
+    </style>
+
+    <!-- AdMob — iOS native ads only, no-op in browser -->
+    <script src="./admob-init.js" defer></script>
+    <script type="module" crossorigin src="./assets/index-DQrqXrlM.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CbVosZZz.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

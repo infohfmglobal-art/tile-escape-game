@@ -1,0 +1,26 @@
+{
+  "name": "Tile Escape - Connect the Pipes",
+  "short_name": "Tile Escape",
+  "description": "Rotate pipes, connect the path, and escape each puzzle! Tap to rotate tile pieces and build a connected pipeline from start to finish.",
+  "start_url": "/tile-escape/",
+  "scope": "/tile-escape/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#6c63ff",
+  "icons": [
+    {
+      "src": "/tile-escape/favicon.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/tile-escape/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "puzzle"],
+  "lang": "en"
+}

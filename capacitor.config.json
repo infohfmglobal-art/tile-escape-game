@@ -1,0 +1,17 @@
+{
+  "appId": "com.frameweavestudio.tileescape",
+  "appName": "Tile Escape",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "backgroundColor": "#0a0a1a",
+    "preferredContentMode": "mobile"
+  },
+  "plugins": {
+    "AdMob": {
+      "appId": "ca-app-pub-3373361899592655~1338901934"
+    }
+  }
+}
