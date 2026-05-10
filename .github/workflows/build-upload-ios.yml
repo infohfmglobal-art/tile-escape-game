@@ -190,6 +190,7 @@ jobs:
             sed -i '' 's/UMPDebugGeography/DebugGeography/g' "$CONSENT_FILE"
             sed -i '' 's/UMPConsentInformation\.sharedInstance/ConsentInformation.shared/g' "$CONSENT_FILE"
             sed -i '' 's/UMPFormStatus/FormStatus/g' "$CONSENT_FILE"
+            sed -i '' 's/UMPConsentForm/ConsentForm/g' "$CONSENT_FILE"
             sed -i '' 's/tagForUnderAgeOfConsent/isTaggedForUnderAgeOfConsent/g' "$CONSENT_FILE"
             sed -i '' 's/load(completionHandler:/load(with:/g' "$CONSENT_FILE"
             echo "=== Patched file ==="
