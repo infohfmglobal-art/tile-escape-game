@@ -285,7 +285,7 @@ jobs:
             -exportPath $RUNNER_TEMP/TileEscape-IPA \
             -exportOptionsPlist /tmp/ExportOptions.plist \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_API_KEY_ID }}.p8 \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_API_KEY_ID }}.p8" \
             -authenticationKeyID ${{ secrets.APP_STORE_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.APP_STORE_API_ISSUER_ID }}
 
