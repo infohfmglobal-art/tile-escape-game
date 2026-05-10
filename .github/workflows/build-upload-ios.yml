@@ -226,17 +226,17 @@ jobs:
           echo "PROFILE_UUID=${UUID}" >> $GITHUB_ENV
           echo "Provisioning profile installed: ${UUID}"
 
-      - name: Setup App Store Connect API Key
+           - name: Setup App Store Connect API Key
+        env:
+          API_PRIVATE_KEY: ${{ secrets.APP_STORE_API_PRIVATE_KEY }}
+          API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APP_STORE_API_KEY_ID }}.p8
-          echo "${{ secrets.APP_STORE_API_PRIVATE_KEY }}" | base64 --decode > "$KEY_PATH" 2>/dev/null
-          if ! head -1 "$KEY_PATH" | grep -q "BEGIN"; then
-            printf '%s' "${{ secrets.APP_STORE_API_PRIVATE_KEY }}" > "$KEY_PATH"
-          fi
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
+          echo "$API_PRIVATE_KEY" | base64 --decode > "$KEY_PATH"
           chmod 600 "$KEY_PATH"
-          echo "Key file size: $(wc -c < $KEY_PATH) bytes"
-          echo "Key header: $(head -1 $KEY_PATH)"
+          echo "Key size: $(wc -c < $KEY_PATH) bytes"
+          head -1 "$KEY_PATH"
 
       - name: Build & Archive
         working-directory: tileescape-cap/ios/App
