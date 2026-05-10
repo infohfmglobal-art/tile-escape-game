@@ -179,6 +179,25 @@ jobs:
         working-directory: tileescape-cap/ios/App
         run: pod install
 
+      - name: Patch AdMob ConsentExecutor for new UMP SDK API
+        run: |
+          CONSENT_FILE=$(find tileescape-cap -name "ConsentExecutor.swift" 2>/dev/null | head -1)
+          if [ -n "$CONSENT_FILE" ]; then
+            echo "Patching: $CONSENT_FILE"
+            sed -i '' 's/UMPConsentStatus/ConsentStatus/g' "$CONSENT_FILE"
+            sed -i '' 's/UMPRequestParameters/RequestParameters/g' "$CONSENT_FILE"
+            sed -i '' 's/UMPDebugSettings/DebugSettings/g' "$CONSENT_FILE"
+            sed -i '' 's/UMPDebugGeography/DebugGeography/g' "$CONSENT_FILE"
+            sed -i '' 's/UMPConsentInformation\.sharedInstance/ConsentInformation.shared/g' "$CONSENT_FILE"
+            sed -i '' 's/UMPFormStatus/FormStatus/g' "$CONSENT_FILE"
+            sed -i '' 's/tagForUnderAgeOfConsent/isTaggedForUnderAgeOfConsent/g' "$CONSENT_FILE"
+            sed -i '' 's/load(completionHandler:/load(with:/g' "$CONSENT_FILE"
+            echo "=== Patched file ==="
+            cat "$CONSENT_FILE"
+          else
+            echo "WARNING: ConsentExecutor.swift not found — skipping patch"
+          fi
+
       - name: Import Distribution Certificate
         run: |
           echo "${{ secrets.DISTRIBUTION_CERTIFICATE_P12 }}" | tr -d '[:space:]' | base64 --decode > distribution_raw.p12
