@@ -260,61 +260,48 @@ jobs:
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
 
-      - name: Verify API Key file
-        env:
-          API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
-        run: |
-          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
-          echo "Key path: $KEY_PATH"
-          echo "Key size: $(wc -c < $KEY_PATH) bytes"
-          echo "Key header: $(head -1 $KEY_PATH)"
-          echo "Profile UUID: ${{ env.PROFILE_UUID }}"
-
-      - name: Export & Upload IPA to App Store Connect
+            - name: Verify API Key and Test App Store Connect Auth
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_API_ISSUER_ID }}
-          PROFILE_UUID: ${{ env.PROFILE_UUID }}
         run: |
-          cat > /tmp/ExportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>destination</key>
-            <string>upload</string>
-            <key>teamID</key>
-            <string>VM337XCL53</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string>Apple Distribution</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.frameweavestudio.tileescape</key>
-              <string>${PROFILE_UUID}</string>
-            </dict>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          EOF
-          echo "=== ExportOptions.plist ==="
-          cat /tmp/ExportOptions.plist
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/TileEscape.xcarchive \
-            -exportPath $RUNNER_TEMP/TileEscape-IPA \
-            -exportOptionsPlist /tmp/ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$KEY_PATH" \
-            -authenticationKeyID "${API_KEY_ID}" \
-            -authenticationKeyIssuerID "${API_ISSUER_ID}"
-
+          echo "=== Key file info ==="
+          echo "Key path: $KEY_PATH"
+          echo "Key size: $(wc -c < $KEY_PATH) bytes"
+          echo "Key header: $(head -1 $KEY_PATH)"
+          echo "Key footer: $(tail -1 $KEY_PATH)"
+          echo "Key ID: ${API_KEY_ID}"
+          echo "Issuer ID: ${API_ISSUER_ID}"
+          echo ""
+          echo "=== Validating key is valid EC private key ==="
+          openssl ec -in "$KEY_PATH" -noout 2>&1 && echo "✓ Valid EC key" || \
+          openssl pkey -in "$KEY_PATH" -noout 2>&1 && echo "✓ Valid private key" || \
+          echo "✗ Key validation FAILED — the .p8 file content is invalid"
+          echo ""
+          echo "=== Testing App Store Connect API auth via curl ==="
+          NOW=$(date +%s)
+          EXP=$((NOW + 1200))
+          HEADER=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "${API_KEY_ID}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          PAYLOAD=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' "${API_ISSUER_ID}" "$NOW" "$EXP" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          SIG=$(printf '%s.%s' "$HEADER" "$PAYLOAD" | openssl dgst -sha256 -sign "$KEY_PATH" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          JWT="${HEADER}.${PAYLOAD}.${SIG}"
+          HTTP_CODE=$(curl -s -o /tmp/asc_response.json -w "%{http_code}" \
+            -H "Authorization: Bearer $JWT" \
+            "https://api.appstoreconnect.apple.com/v1/apps?limit=1")
+          echo "HTTP response code: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ App Store Connect auth SUCCESSFUL — credentials are valid"
+          elif [ "$HTTP_CODE" = "401" ]; then
+            echo "✗ UNAUTHORIZED — API key is invalid, revoked, or secret is wrong"
+            cat /tmp/asc_response.json
+          elif [ "$HTTP_CODE" = "403" ]; then
+            echo "✗ FORBIDDEN — API key lacks permission (needs Admin or Developer role)"
+            cat /tmp/asc_response.json
+          else
+            echo "✗ Unexpected response: $HTTP_CODE"
+            cat /tmp/asc_response.json
+          fi
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
         with:
