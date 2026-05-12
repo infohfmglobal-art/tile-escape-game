@@ -95,9 +95,9 @@ jobs:
           if [ -n "$IOS_PUBLIC" ]; then
             mkdir -p "$IOS_PUBLIC/assets"
             cp index.html    "$IOS_PUBLIC/" || true
-            cp manifest.json "$IOS_PUBLIC/" || true
-            cp favicon.png   "$IOS_PUBLIC/" || true
-            cp icon-1024.png "$IOS_PUBLIC/" || true
+            cp manifest.json "$IOS_PUBLIC/" 2>/dev/null || true
+            cp favicon.png   "$IOS_PUBLIC/" 2>/dev/null || true
+            cp icon-1024.png "$IOS_PUBLIC/" 2>/dev/null || true
             cp assets/*.js   "$IOS_PUBLIC/assets/" || true
             cp assets/*.css  "$IOS_PUBLIC/assets/" || true
           fi
@@ -181,6 +181,7 @@ jobs:
           UUID=$(security cms -D -i profile.mobileprovision | plutil -extract UUID raw -)
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/${UUID}.mobileprovision
           echo "PROFILE_UUID=${UUID}" >> $GITHUB_ENV
+          echo "Provisioning profile installed: ${UUID}"
 
       - name: Setup App Store Connect API Key
         env:
@@ -209,18 +210,28 @@ jobs:
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
 
+      - name: Verify API Key file
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
+        run: |
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
+          echo "Key size: $(wc -c < $KEY_PATH) bytes"
+          echo "Key header: $(head -1 $KEY_PATH)"
+          echo "Profile UUID: ${{ env.PROFILE_UUID }}"
+
       - name: Export IPA
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_API_ISSUER_ID }}
+          PROFILE_UUID: ${{ env.PROFILE_UUID }}
         run: |
-          cat > /tmp/ExportOptions.plist << 'EOF'
+          cat > /tmp/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store-connect</string>
+            <string>app-store</string>
             <key>teamID</key>
             <string>VM337XCL53</string>
             <key>signingStyle</key>
@@ -230,7 +241,7 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>com.frameweavestudio.tileescape</key>
-              <string>TileEscape AppStore</string>
+              <string>${PROFILE_UUID}</string>
             </dict>
             <key>uploadBitcode</key>
             <false/>
@@ -239,12 +250,15 @@ jobs:
           </dict>
           </plist>
           EOF
+          echo "=== ExportOptions.plist ==="
+          cat /tmp/ExportOptions.plist
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/TileEscape.xcarchive \
             -exportPath $RUNNER_TEMP/TileEscape-IPA \
             -exportOptionsPlist /tmp/ExportOptions.plist \
             -allowProvisioningUpdates \
-            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8" \
+            -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "${API_KEY_ID}" \
             -authenticationKeyIssuerID "${API_ISSUER_ID}"
 
@@ -253,12 +267,13 @@ jobs:
           API_KEY_ID: ${{ secrets.APP_STORE_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_API_ISSUER_ID }}
         run: |
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
           xcrun altool --upload-app \
             --type ios \
             --file "$RUNNER_TEMP/TileEscape-IPA/App.ipa" \
             --apiKey "${API_KEY_ID}" \
             --apiIssuer "${API_ISSUER_ID}" \
-            --apiKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
+            --apiKeyPath "$KEY_PATH"
 
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
